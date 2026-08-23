@@ -67,19 +67,41 @@ The reproduced agreement is *not luck*: our generated games are monotone (`w_k` 
 
 The relative cost ordering matches the paper's structural message: the exhaustive all-`k` scans (**IT**, **ITI**, and our **CQC**-as-min-over-`k`) grow fast (5.5 s at |U|=20 → 160 s at |U|=50, mirrored by the paper's note that plain IT was not run at 200 users), while approaches that exploit the leave-one-out optimality — **ITD**, **RG** and **LCH** — stay cheap (≈ 0.2–3 s even at |U|=100). The paper's headline that **CQC is the fastest exact method** (driven by solving the *single* quadratic program (34)) was **not** reproducible here: with the free HiGHS solver the single non-convex QCP did not reach the exact optimum, so we evaluated CQC through its provably-equivalent compact min-over-`k` formula, which scales like IT rather than like a single solve. This is a substitution we flag explicitly rather than a failure of the claim.
 
-## Assessment by claim
+## Assessment by claim (strict)
 
 | Paper claim (Section 7) | Observed | Assessment |
 |---|---|---|
-| All approaches return the same ε\* (≥6 decimals) | ε\* identical to 8 decimals at every size, incl. brute force | **Aligned** |
-| Leave-one-out heuristic LCH matches ε\* (leave-one-out is least core) | LCH = ε\* exactly, at γ=0.10 and γ=0.20, all |U| | **Aligned** |
-| ITD is fastest of the IT-family; the all-k scans are prohibitive at large `n` | ITD 1 solve vs IT/ITI all-`k`; IT not run at |U|=100 | **Aligned** |
-| CQC is the fastest exact approach (linear-ish scale) | Not reproduced with the free solver; exact value reproduced, single-solve speed not | **Partially aligned** |
-| Relative timings (Table 1 numbers) | Different hardware + solver ⇒ absolute seconds not comparable | **Not attempted** (downscaled) |
+| All approaches return the same ε\* (≥6 decimals) | ε\* identical to 8 decimals at every size, incl. independent brute force | **Supported** (self-consistency only — paper's own data not reproducible) |
+| Leave-one-out heuristic LCH matches exact ε\* | LCH = ε\* exactly, at γ=0.10 and γ=0.20, all \|U\| | **Supported** |
+| ITD is fastest of the IT-family; all-`k` scans prohibitive at large `n` | ITD 1 solve vs IT/ITI all-`k`; scanning methods blow up | **Supported** |
+| **CQC is the fastest exact approach (linear-ish)** | Not reproduced; our CQC-as-min-over-`k` is among the *slowest* (≈ IT), while paper has CQC ≪ IT/ITD/RG | **Not supported — method ordering reversed** |
+| Relative timings (Table 1 numbers) | Different data/solver/hardware ⇒ absolute seconds not comparable | **Not comparable** |
 
-## Headline result
+**Direction consistency.** The paper's "A faster than B" order for the *fastest* method does **not** carry through: the paper reports CQC (66–292 s) as the fastest exact method, far ahead of RG/IT/ITI/ITD, whereas our reproduction (with CQC evaluated via its min-over-`k` form under HiGHS) has CQC among the slowest and ITD/RG/LCH fastest. The only stable qualitative parallels are that the exhaustive per-`k` scans (IT/ITI) are the slowest and grow fastest, and LCH is cheap.
 
-The paper's key *quantitative* claim reproduces exactly: **all six approaches — and the leave-one-out heuristic LCH — return the same least core value ε\*, to 8 decimal places, at community sizes 10–100 and under two reward regimes**, matching an exhaustive brute-force ground truth. Where we diverge, it is substitution, not contradiction: absolute Table-1 times differ because we use HiGHS not Gurobi on different hardware, and **CQC's single-program speed advantage could not be reproduced** because the free solver does not solve the non-convex quadratic program (34) optimally. A full reproduction at the paper's exact scale would need the authors' EnergyCommunity.jl/TheoryOfGames.jl Julia stack with Gurobi and the original Fioriti data, plus enough budget to run plain IT at |U|=200.
+**Numerical proximity.** The paper reports no ε\* values and no error bars on Table 1 (only wall-clock times on its own data), so no numerical comparison of ε\* is possible. Wall-clock times are not comparable (different dataset, solver Gurobi→HiGHS, hardware).
+
+**Condition differences.**
+- Data: paper = real Fioriti et al. profiles (EnergyCommunity.jl); ours = synthetic 3-consumer/7-prosumer base, replicated. This changes which coalitions are binding and the absolute times.
+- Solver: Gurobi 13 (8 threads, 4×18-core Xeon) vs HiGHS (free, single-process default).
+- Framework: Julia/JuMP/EnergyCommunity.jl+TheoryOfGames.jl vs Python.
+- Method CQC: paper solves the single non-convex QCP (34); we used its provably-equivalent min-over-`k` form because HiGHS did not solve the non-convex QCP optimally.
+- |U| sweep: paper up to 200 (and IT/ITI to 100); ours to 100, IT/ITI/CQC not run at 100.
+
+## Final grade: **C — partial reproduction**
+
+- The algorithmic **methods are implemented correctly and are mutually consistent** (six methods + exhaustive brute force all give the same ε\*, a real ground-truth check on our instances). The paper's "all methods agree" and "leave-one-out yields ε\*" statements are supported on our synthetic family.
+- But that only establishes **algorithmic self-consistency on our data**; it is not the paper's headline *numerical* result (the Table-1 time ranking). The paper's central "CQC is fastest" conclusion is **not reproduced** — under our substitution its relative order is reversed.
+- Because experimental conditions differ materially (dataset, solver, framework, hardware) and a core conclusion's direction is not reproduced, this is not a full or scaled reproduction. It is **C: partial** — code and parts of the experiments run correctly and several claims are supported, but not all core conclusions.
+
+## Headline result (what is and isn't verified)
+
+**Verified (on our synthetic instances):** all six approaches — and the leave-one-out heuristic LCH — return the same least core value ε\* = 0.40092176 (γ=0.10) / 0.93125734 (γ=0.20), to 8 decimals, at |U|=10–100, matching an exhaustive brute force at |U|=10; ε\* is size-invariant by construction, and is attained at the leave-one-out coalition (monotone game), which is exactly why LCH is exact.
+
+**Not verified / not reproduced:** the paper's Table-1 wall-clock ranking and its core conclusion that **CQC is the fastest exact method** (our CQC evaluation inverts that order); any numerical ε\* from the paper's real data (none published); the authors' Julia/Gurobi pipeline. Absolute seconds are not comparable.
+
+A full reproduction would need the authors' EnergyCommunity.jl/TheoryOfGames.jl Julia stack, Gurobi, and the original Fioriti data, plus budget to run plain IT at |U|=200.
+
 
 ## Experiment branches
 

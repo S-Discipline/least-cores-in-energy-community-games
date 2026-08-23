@@ -13,12 +13,19 @@ admission fees → balanced) and all six algorithms in Python + HiGHS (`reproduc
 on synthetic instances following the paper's Fioriti-et-al-2021 base configuration
 (3 consumers + 7 prosumers), replicated to |U| = 10, 20, 50, 100 users.
 
-**Assessment: aligned.** All six methods return **ε\* = 0.4009218** (γ = 0.10) at
-every size, and the leave-one-out heuristic **LCH matches it exactly**, agreeing at
-|U|=10 with an exhaustive brute force over all 2¹⁰ coalitions (`0.40092176`). The
-result also reproduces under a second reward regime (γ = 0.20 → **ε\* = 0.9312573**).
-Because the games are monotone, ε\* is attained at the largest coalition (k=|U|−1),
-which is precisely why LCH is exact here.
+**Assessment: level C — partial reproduction.** On our synthetic instances all six
+methods return **ε\* = 0.4009218** (γ = 0.10) at every size, the leave-one-out
+heuristic **LCH matches it exactly**, and at |U|=10 this agrees with an exhaustive
+brute force over all 2¹⁰ coalitions (`0.40092176`); the result also holds under a
+second reward regime (γ = 0.20 → **ε\* = 0.9312573**). Because the games are
+monotone, ε\* is attained at the largest coalition (k=|U|−1), which is why LCH is
+exact here. **However** these numbers are algorithmic self-consistency on *our* data,
+not the paper's headline Table-1 time ranking. The paper's core conclusion that
+**CQC is the fastest exact method is not reproduced** — under our substitution
+(HiGHS, CQC via its min-over-`k` form) CQC is among the *slowest*, reversing the
+paper's method ordering. Experimental conditions differ materially (dataset, solver
+Gurobi→HiGHS, framework Julia→Python, hardware), so this is not a full or scaled
+reproduction.
 
 | Quantity | Paper result | Observed |
 |---|---|---|
@@ -27,13 +34,12 @@ which is precisely why LCH is exact here.
 | ε\*, γ=0.10 / γ=0.20 | — (illustrative) | 0.40092176 / 0.93125734 |
 | Brute-force ground truth (|U|=10, γ=0.10) | — | **0.40092176** (exact match) |
 
-**Downscaling / substitutions.** We used **HiGHS** (free) instead of the paper's
-**Gurobi**, and **synthetic linear instances** instead of the authors' full
-EnergyCommunity.jl multi-asset data. Absolute Table-1 seconds are therefore **not**
-comparable. **CQC's single-program speed advantage was not reproduced**: with the
-free solver the single non-convex quadratic program (34) is not solved optimally, so
-CQC's exact *value* was reproduced (proven equivalent to the min-over-|U| formula)
-but not its one-solve speed-up.
+**Condition differences vs the paper (why this is level C, not A/B):**
+- **Data:** paper = real Fioriti et al. profiles (EnergyCommunity.jl); ours = synthetic 3-consumer/7-prosumer base, replicated. Changes which coalitions bind and the absolute times.
+- **Solver:** Gurobi 13, 8 threads (4×18-core Xeon) → HiGHS (free, single-process default).
+- **Framework:** Julia/JuMP/EnergyCommunity.jl+TheoryOfGames.jl → Python.
+- **CQC:** paper solves the single non-convex QCP (34); we used its provably-equivalent min-over-`k` form because HiGHS did not solve the non-convex QCP optimally — this **reverses CQC's relative ordering**.
+- **Sweep:** paper to |U|=200 (IT/ITI to 100); ours to 100, IT/ITI/CQC not run at 100.
 
 **Compute.** All runs executed on the agreed **Vast.ai RTX 4090** instance
 (`ssh1.vast.ai:18642`, SSH host alias `lcec-4090`) via `orx exp run --backend ssh --host lcec-4090`.
@@ -46,8 +52,8 @@ but not its one-solve speed-up.
 
 | Branch / experiment | Purpose / change | Exact run command | Outcome | Compute |
 |---|---|---|---|---|
-| `orx/baseline-reproduce-least-core-value-methods-n-10` (exp `fdfcdafa-…`, runs `6d5e611e`, `586f8446`) | Baseline: reproduce ε\*, all 6 methods, γ=0.10, |U|=10–100 | `python3 -c "import numpy,highspy" 2>/dev/null \|\| pip3 install -q highspy numpy; cd reproduce && python3 reproduce_all.py 1` | **Aligned** — ε\*=0.40092176 all methods + LCH + brute force | Vast.ai RTX 4090 (SSH) |
-| `orx/reward-sensitivity-higher-community-reward-esg-g` (exp `cad72778-…`, run `129b5ae8`) | Vary community reward γ 0.10→0.20 in `config.json`; same claim | `python3 -c "import numpy,highspy" 2>/dev/null \|\| pip3 install -q highspy numpy; cd reproduce && python3 reproduce_all.py 1` | **Aligned** — ε\*=0.93125734 all methods + LCH + brute force | Vast.ai RTX 4090 (SSH) |
+| `orx/baseline-reproduce-least-core-value-methods-n-10` (exp `fdfcdafa-…`, runs `6d5e611e`, `586f8446`) | Baseline: reproduce ε\*, all 6 methods, γ=0.10, |U|=10–100 | `python3 -c "import numpy,highspy" 2>/dev/null \|\| pip3 install -q highspy numpy; cd reproduce && python3 reproduce_all.py 1` | **Supported** — ε\*=0.40092176 all methods + LCH + brute force (self-consistency on synthetic data) | Vast.ai RTX 4090 (SSH) |
+| `orx/reward-sensitivity-higher-community-reward-esg-g` (exp `cad72778-…`, run `129b5ae8`) | Vary community reward γ 0.10→0.20 in `config.json`; same claim | `python3 -c "import numpy,highspy" 2>/dev/null \|\| pip3 install -q highspy numpy; cd reproduce && python3 reproduce_all.py 1` | **Supported** — ε\*=0.93125734 all methods + LCH + brute force | Vast.ai RTX 4090 (SSH) |
 
 `main` is the publication surface (profile + README + report + notebook); it was
 **not run as an experiment**. Experiment branches above carry the committed
