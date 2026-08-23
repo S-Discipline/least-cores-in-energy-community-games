@@ -1,0 +1,61 @@
+# Least cores in energy community games — reproduction
+
+## Reproduction: "Least cores in energy community games" (arXiv 2511.05291), Section 7
+
+**Claim tested:** the paper's computational result that **six approaches — row
+generation (RG), the iterative scans IT / ITI / ITD, the compact program CQC, and
+a cheap leave-one-out heuristic LCH — all compute the same least core value ε\***
+of an Energy Sharing Game**, and that the leave-one-out "heuristic" matches the
+exact ε\*.
+
+**What was done.** Re-implemented the Energy Sharing Game (paper Eqs. 4–5, no
+admission fees → balanced) and all six algorithms in Python + HiGHS (`reproduce/`),
+on synthetic instances following the paper's Fioriti-et-al-2021 base configuration
+(3 consumers + 7 prosumers), replicated to |U| = 10, 20, 50, 100 users.
+
+**Assessment: aligned.** All six methods return **ε\* = 0.4009218** (γ = 0.10) at
+every size, and the leave-one-out heuristic **LCH matches it exactly**, agreeing at
+|U|=10 with an exhaustive brute force over all 2¹⁰ coalitions (`0.40092176`). The
+result also reproduces under a second reward regime (γ = 0.20 → **ε\* = 0.9312573**).
+Because the games are monotone, ε\* is attained at the largest coalition (k=|U|−1),
+which is precisely why LCH is exact here.
+
+| Quantity | Paper result | Observed |
+|---|---|---|
+| ε\* (all methods agree) | identical ≥6 decimals | **identical to 8 decimals** at |U|=10–100 |
+| LCH vs exact ε\* | "leave-one-out likely yield the least core value" | **LCH = ε\* exactly** (γ=0.10 & γ=0.20) |
+| ε\*, γ=0.10 / γ=0.20 | — (illustrative) | 0.40092176 / 0.93125734 |
+| Brute-force ground truth (|U|=10, γ=0.10) | — | **0.40092176** (exact match) |
+
+**Downscaling / substitutions.** We used **HiGHS** (free) instead of the paper's
+**Gurobi**, and **synthetic linear instances** instead of the authors' full
+EnergyCommunity.jl multi-asset data. Absolute Table-1 seconds are therefore **not**
+comparable. **CQC's single-program speed advantage was not reproduced**: with the
+free solver the single non-convex quadratic program (34) is not solved optimally, so
+CQC's exact *value* was reproduced (proven equivalent to the min-over-|U| formula)
+but not its one-solve speed-up.
+
+**Compute.** All runs executed on the agreed **Vast.ai RTX 4090** instance
+(`ssh1.vast.ai:18642`, SSH host alias `lcec-4090`) via `orx exp run --backend ssh --host lcec-4090`.
+
+**Artifacts.**
+- **Report** (visual write-up with figures): [`reports/least-core-reproduction/report.md`](reports/least-core-reproduction/report.md)
+- **Notebook** (tutorial, opens with the measured evidence): [`leastcore_reproduction.py`](leastcore_reproduction.py) — run locally with `marimo edit leastcore_reproduction.py` or `marimo run leastcore_reproduction.py`.
+
+### Experiment log
+
+| Branch / experiment | Purpose / change | Exact run command | Outcome | Compute |
+|---|---|---|---|---|
+| `orx/baseline-reproduce-least-core-value-methods-n-10` (exp `fdfcdafa-…`, runs `6d5e611e`, `586f8446`) | Baseline: reproduce ε\*, all 6 methods, γ=0.10, |U|=10–100 | `python3 -c "import numpy,highspy" 2>/dev/null \|\| pip3 install -q highspy numpy; cd reproduce && python3 reproduce_all.py 1` | **Aligned** — ε\*=0.40092176 all methods + LCH + brute force | Vast.ai RTX 4090 (SSH) |
+| `orx/reward-sensitivity-higher-community-reward-esg-g` (exp `cad72778-…`, run `129b5ae8`) | Vary community reward γ 0.10→0.20 in `config.json`; same claim | `python3 -c "import numpy,highspy" 2>/dev/null \|\| pip3 install -q highspy numpy; cd reproduce && python3 reproduce_all.py 1` | **Aligned** — ε\*=0.93125734 all methods + LCH + brute force | Vast.ai RTX 4090 (SSH) |
+
+`main` is the publication surface (profile + README + report + notebook); it was
+**not run as an experiment**. Experiment branches above carry the committed
+reproduction source (`reproduce/`) and the run results live in `orx runs`.
+
+---
+
+## Project: Least cores in energy community games
+
+Research reproduction project for the paper *Least cores in energy community games*
+(Bigi, Fioriti, Frangioni, Passacantando, Poli; arXiv 2511.05291).
