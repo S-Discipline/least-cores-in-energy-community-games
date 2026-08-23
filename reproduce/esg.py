@@ -18,11 +18,20 @@ Methods (Table 1): RG, IT, ITI, ITD, CQC (all exact) and LCH (leave-one-out
 heuristic).  HiGHS (highspy) substitutes the paper's Gurobi.
 """
 
+import datetime
+import json as _json
+import os as _os
 import time as _time
 import numpy as np
 import highspy
 
-CB, CS, GAMMA = 0.30, 0.12, 0.10
+_cfg = {}
+try:
+    with open("config.json") as _f:
+        _cfg = _json.load(_f)
+except Exception:
+    pass
+CB, CS, GAMMA = 0.30, 0.12, float(_cfg.get("gamma", _os.environ.get("ESG_GAMMA", "0.10")))
 BIG = 1e4
 _PINF, _NINF = float("inf"), float("-inf")
 
